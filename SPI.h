@@ -14,6 +14,9 @@
 #define _SPI_H_INCLUDED
 
 #include <Arduino.h>
+#include <kinetis.h>
+#include <math.h>
+#include <stdint.h>
 
 #if defined(__arm__) && defined(TEENSYDUINO)
 #if defined(__has_include) && __has_include(<EventResponder.h>)
