@@ -211,7 +211,7 @@ const SPIClass::SPI_Hardware_t SPIClass::spi0_hardware = {
 	PORT_PCR_MUX(2),  PORT_PCR_MUX(2), PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),
 	0x1, 0x1, 0x2, 0x2, 0x4, 0x4, 0x8, 0x8, 0x10
 };
-SPIClass SPI(KINETISK_SPI0_ADDR, (uintptr_t)&SPIClass::spi0_hardware);
+SPIClass SPI(KINETISK_SPI0_ADDR, SPIClass::spi0_hardware);
 
 #elif defined(__MK64FX512__) || defined(__MK66FX1M0__)
 #ifdef SPI_HAS_TRANSFER_ASYNC
@@ -275,9 +275,9 @@ const SPIClass::SPI_Hardware_t SPIClass::spi2_hardware = {
 	PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  PORT_PCR_MUX(2),  0,  0,  0,  0,  0,  0,   0,   0,
 	0x1, 0x2, 0x1, 0, 0, 0, 0, 0, 0, 0, 0
 };
-SPIClass SPI(KINETISK_SPI0_ADDR, (uintptr_t)&SPIClass::spi0_hardware);
-SPIClass SPI1(KINETISK_SPI1_ADDR, (uintptr_t)&SPIClass::spi1_hardware);
-SPIClass SPI2(KINETISK_SPI2_ADDR, (uintptr_t)&SPIClass::spi2_hardware);
+SPIClass SPI(KINETISK_SPI0_ADDR, SPIClass::spi0_hardware);
+SPIClass SPI1(KINETISK_SPI1_ADDR, SPIClass::spi1_hardware);
+SPIClass SPI2(KINETISK_SPI2_ADDR, SPIClass::spi2_hardware);
 #endif
 
 
@@ -285,28 +285,28 @@ void SPIClass::begin()
 {
 	volatile uint32_t *reg;
 
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	port().MCR = SPI_MCR_MDIS | SPI_MCR_HALT | SPI_MCR_PCSIS(0x1F);
 	port().CTAR0 = SPI_CTAR_FMSZ(7) | SPI_CTAR_PBR(0) | SPI_CTAR_BR(1) | SPI_CTAR_CSSCK(1);
 	port().CTAR1 = SPI_CTAR_FMSZ(15) | SPI_CTAR_PBR(0) | SPI_CTAR_BR(1) | SPI_CTAR_CSSCK(1);
 	port().MCR = SPI_MCR_MSTR | SPI_MCR_PCSIS(0x1F);
-	reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
-	*reg = hardware().mosi_mux[mosi_pin_index];
-	reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
-	*reg= hardware().miso_mux[miso_pin_index];
-	reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
-	*reg = hardware().sck_mux[sck_pin_index];
+	reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
+	*reg = hardware.mosi_mux[mosi_pin_index];
+	reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
+	*reg= hardware.miso_mux[miso_pin_index];
+	reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
+	*reg = hardware.sck_mux[sck_pin_index];
 }
 
 void SPIClass::end()
 {
 	volatile uint32_t *reg;
 
-	reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
+	reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
 	*reg = 0;
-	reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
+	reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
 	*reg = 0;
-	reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
+	reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
 	*reg = 0;
 	port().MCR = SPI_MCR_MDIS | SPI_MCR_HALT | SPI_MCR_PCSIS(0x1F);
 }
@@ -385,7 +385,7 @@ void SPIClass::updateCTAR(uint32_t ctar)
 
 void SPIClass::setBitOrder(uint8_t bitOrder)
 {
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	uint32_t ctar = port().CTAR0;
 	if (bitOrder == LSBFIRST) {
 		ctar |= SPI_CTAR_LSBFE;
@@ -397,7 +397,7 @@ void SPIClass::setBitOrder(uint8_t bitOrder)
 
 void SPIClass::setDataMode(uint8_t dataMode)
 {
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	//uint32_t ctar = port().CTAR0;
 
 	// TODO: implement with native code
@@ -406,7 +406,7 @@ void SPIClass::setDataMode(uint8_t dataMode)
 
 void SPIClass::setClockDivider_noInline(uint32_t clk)
 {
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	uint32_t ctar = port().CTAR0;
 	ctar &= (SPI_CTAR_CPOL | SPI_CTAR_CPHA | SPI_CTAR_LSBFE);
 	if (ctar & SPI_CTAR_CPHA) {
@@ -418,8 +418,8 @@ void SPIClass::setClockDivider_noInline(uint32_t clk)
 
 uint8_t SPIClass::pinIsChipSelect(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if (pin == hardware().cs_pin[i]) return hardware().cs_mask[i];
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if (pin == hardware.cs_pin[i]) return hardware.cs_mask[i];
 	}
 	return 0;
 }
@@ -436,24 +436,24 @@ bool SPIClass::pinIsChipSelect(uint8_t pin1, uint8_t pin2)
 
 bool SPIClass::pinIsMOSI(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-		if (pin == hardware().mosi_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+		if (pin == hardware.mosi_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsMISO(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-		if (pin == hardware().miso_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+		if (pin == hardware.miso_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsSCK(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-		if (pin == hardware().sck_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+		if (pin == hardware.sck_pin[i]) return true;
 	}
 	return false;
 }
@@ -461,11 +461,11 @@ bool SPIClass::pinIsSCK(uint8_t pin)
 // setCS() is not intended for use from normal Arduino programs/sketches.
 uint8_t SPIClass::setCS(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if (pin == hardware().cs_pin[i]) {
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if (pin == hardware.cs_pin[i]) {
 			volatile uint32_t *reg = portConfigRegister(pin);
-			*reg = hardware().cs_mux[i];
-			return hardware().cs_mask[i];
+			*reg = hardware.cs_mux[i];
+			return hardware.cs_mask[i];
 		}
 	}
 	return 0;
@@ -473,18 +473,18 @@ uint8_t SPIClass::setCS(uint8_t pin)
 
 void SPIClass::setMOSI(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setMOSI_soft(pin);
 	}
-	if (pin != hardware().mosi_pin[mosi_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-			if  (pin == hardware().mosi_pin[i]) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.mosi_pin[mosi_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+			if  (pin == hardware.mosi_pin[i]) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
+					reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().mosi_pin[i]);
-					*reg = hardware().mosi_mux[i];
+					reg = portConfigRegister(hardware.mosi_pin[i]);
+					*reg = hardware.mosi_mux[i];
 				}	
 				mosi_pin_index = i;
 				return;
@@ -495,18 +495,18 @@ void SPIClass::setMOSI(uint8_t pin)
 
 void SPIClass::setMISO(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setMISO_soft(pin);
 	}
-	if (pin != hardware().miso_pin[miso_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-			if  (pin == hardware().miso_pin[i]) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.miso_pin[miso_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+			if  (pin == hardware.miso_pin[i]) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
+					reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().miso_pin[i]);
-					*reg = hardware().miso_mux[i];
+					reg = portConfigRegister(hardware.miso_pin[i]);
+					*reg = hardware.miso_mux[i];
 				}	
 				miso_pin_index = i;
 				return;
@@ -517,18 +517,18 @@ void SPIClass::setMISO(uint8_t pin)
 
 void SPIClass::setSCK(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setSCK_soft(pin);
 	}
-	if (pin != hardware().sck_pin[sck_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-			if  (pin == hardware().sck_pin[i]) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.sck_pin[sck_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+			if  (pin == hardware.sck_pin[i]) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
+					reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().sck_pin[i]);
-					*reg = hardware().sck_mux[i];
+					reg = portConfigRegister(hardware.sck_pin[i]);
+					*reg = hardware.sck_mux[i];
 				}	
 				sck_pin_index = i;
 				return;
@@ -576,7 +576,7 @@ void SPIClass::transfer(const void * buf, void * retbuf, size_t count)
 		    	w = (*p_write++) << 8;
 				w |= *p_write++;
 		    }
-		    uint16_t queue_full_status_mask = (hardware().queue_size-1) << 12;
+		    uint16_t queue_full_status_mask = (hardware.queue_size-1) << 12;
 			if (count == 2)
 				port().PUSHR = w | SPI_PUSHR_CTAS(1);
 			else	
@@ -657,7 +657,7 @@ void SPIClass::transfer(const void * buf, void * retbuf, size_t count)
 				w = *p_write++;
 		    	w |= ((*p_write++) << 8);
 		    }
-		    uint16_t queue_full_status_mask = (hardware().queue_size-1) << 12;
+		    uint16_t queue_full_status_mask = (hardware.queue_size-1) << 12;
 			if (count == 2)
 				port().PUSHR = w | SPI_PUSHR_CTAS(1);
 			else	
@@ -736,8 +736,8 @@ bool SPIClass::initDMAChannels() {
 	_dmaRX->disable();
 	_dmaRX->source((volatile uint8_t&)port().POPR);
 	_dmaRX->disableOnCompletion();
-	_dmaRX->triggerAtHardwareEvent(hardware().rx_dma_channel);
-	_dmaRX->attachInterrupt(hardware().dma_rxisr);
+	_dmaRX->triggerAtHardwareEvent(hardware.rx_dma_channel);
+	_dmaRX->attachInterrupt(hardware.dma_rxisr);
 	_dmaRX->interruptAtCompletion();
 
 	// We may be using settings chain here so lets set it up. 
@@ -747,8 +747,8 @@ bool SPIClass::initDMAChannels() {
 	_dmaTX->destination((volatile uint8_t&)port().PUSHR);
 	_dmaTX->disableOnCompletion();
 
-	if (hardware().tx_dma_channel) {
-		_dmaTX->triggerAtHardwareEvent(hardware().tx_dma_channel);
+	if (hardware.tx_dma_channel) {
+		_dmaTX->triggerAtHardwareEvent(hardware.tx_dma_channel);
 	} else {
 //		Serial.printf("SPI InitDMA tx triger by RX: %x\n", (uint32_t)_dmaRX);
 	    _dmaTX->triggerAtTransfersOf(*_dmaRX);
@@ -782,9 +782,9 @@ bool SPIClass::transfer(const void *buf, void *retbuf, size_t count, EventRespon
 	}
 
 	// Now handle the cases where the count > then how many we can output in one DMA request
-	if (count > hardware().max_dma_count) {
-		_dma_count_remaining = count - hardware().max_dma_count;
-		count = hardware().max_dma_count;
+	if (count > hardware.max_dma_count) {
+		_dma_count_remaining = count - hardware.max_dma_count;
+		count = hardware.max_dma_count;
 	} else {
 		_dma_count_remaining = 0;
 	}
@@ -824,7 +824,7 @@ bool SPIClass::transfer(const void *buf, void *retbuf, size_t count, EventRespon
 	// Lets try to output the first byte to make sure that we are in 8 bit mode...
 	port().PUSHR = dma_first_byte | SPI_PUSHR_CTAS(0) | SPI_PUSHR_CONT;	
 
-	if (hardware().tx_dma_channel) {
+	if (hardware.tx_dma_channel) {
 		port().RSER =  SPI_RSER_RFDF_RE | SPI_RSER_RFDF_DIRS | SPI_RSER_TFFF_RE | SPI_RSER_TFFF_DIRS;
 		_dmaRX->enable();
 		// Get the initial settings. 
@@ -854,8 +854,8 @@ void SPIClass::dma_rxisr(void) {
 	if (_dma_count_remaining) {
 		// What do I need to do to start it back up again...
 		// We will use the BITR/CITR from RX as TX may have prefed some stuff
-		if (_dma_count_remaining > hardware().max_dma_count) {
-			_dma_count_remaining -= hardware().max_dma_count;
+		if (_dma_count_remaining > hardware.max_dma_count) {
+			_dma_count_remaining -= hardware.max_dma_count;
 		} else {
 			DMAChanneltransferCount(_dmaTX, _dma_count_remaining-1);
 			DMAChanneltransferCount(_dmaRX, _dma_count_remaining);
@@ -914,6 +914,7 @@ void _spi_dma_rxISR0(void) {;}
 void _spi_dma_rxISR1(void) {;}
 #endif
 
+PROGMEM
 const SPIClass::SPI_Hardware_t SPIClass::spi0_hardware = {
 	SIM_SCGC4, SIM_SCGC4_SPI0,
 	0, // BR index 0
@@ -928,8 +929,9 @@ const SPIClass::SPI_Hardware_t SPIClass::spi0_hardware = {
 	PORT_PCR_MUX(2),  PORT_PCR_MUX(2),
 	0x1, 0x1
 };
-SPIClass SPI(KINETISL_SPI0_ADDR, (uintptr_t)&SPIClass::spi0_hardware);
+SPIClass SPI(KINETISL_SPI0_ADDR, SPIClass::spi0_hardware);
 
+PROGMEM
 const SPIClass::SPI_Hardware_t SPIClass::spi1_hardware = {
 	SIM_SCGC4, SIM_SCGC4_SPI1,
 	1, // BR index 1 in SPI Settings
@@ -944,33 +946,33 @@ const SPIClass::SPI_Hardware_t SPIClass::spi1_hardware = {
 	PORT_PCR_MUX(2),  0,
 	0x1, 0
 };
-SPIClass SPI1(KINETISL_SPI1_ADDR, (uintptr_t)&SPIClass::spi1_hardware);
+SPIClass SPI1(KINETISL_SPI1_ADDR, SPIClass::spi1_hardware);
 
 
 void SPIClass::begin()
 {
 	volatile uint32_t *reg;
 
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	port().C1 = SPI_C1_SPE | SPI_C1_MSTR;
 	port().C2 = 0;
 	uint8_t tmp __attribute__((unused)) = port().S;
-	reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
-	*reg = hardware().mosi_mux[mosi_pin_index];
-	reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
-	*reg = hardware().miso_mux[miso_pin_index];
-	reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
-	*reg = hardware().sck_mux[sck_pin_index];
+	reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
+	*reg = hardware.mosi_mux[mosi_pin_index];
+	reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
+	*reg = hardware.miso_mux[miso_pin_index];
+	reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
+	*reg = hardware.sck_mux[sck_pin_index];
 }
 
 void SPIClass::end() {
 	volatile uint32_t *reg;
 
-	reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
+	reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
 	*reg = 0;
-	reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
+	reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
 	*reg = 0;
-	reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
+	reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
 	*reg = 0;
 	port().C1 = 0;
 }
@@ -1016,15 +1018,15 @@ const uint8_t SPISettings::br_clock_table[30] = {
 
 void SPIClass::setMOSI(uint8_t pin)
 {
-	if (pin != hardware().mosi_pin[mosi_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-			if (pin == hardware().mosi_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.mosi_pin[mosi_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+			if (pin == hardware.mosi_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().mosi_pin[mosi_pin_index]);
+					reg = portConfigRegister(hardware.mosi_pin[mosi_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().mosi_pin[i]);
-					*reg = hardware().mosi_mux[i];
+					reg = portConfigRegister(hardware.mosi_pin[i]);
+					*reg = hardware.mosi_mux[i];
 				}	
 				mosi_pin_index = i;
 				return;
@@ -1035,15 +1037,15 @@ void SPIClass::setMOSI(uint8_t pin)
 
 void SPIClass::setMISO(uint8_t pin)
 {
-	if (pin != hardware().miso_pin[miso_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-			if (pin == hardware().miso_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.miso_pin[miso_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+			if (pin == hardware.miso_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().miso_pin[miso_pin_index]);
+					reg = portConfigRegister(hardware.miso_pin[miso_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().miso_pin[i]);
-					*reg = hardware().miso_mux[i];
+					reg = portConfigRegister(hardware.miso_pin[i]);
+					*reg = hardware.miso_mux[i];
 				}	
 				miso_pin_index = i;
 				return;
@@ -1054,15 +1056,15 @@ void SPIClass::setMISO(uint8_t pin)
 
 void SPIClass::setSCK(uint8_t pin)
 {
-	if (pin != hardware().sck_pin[sck_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-			if (pin == hardware().sck_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.sck_pin[sck_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+			if (pin == hardware.sck_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					volatile uint32_t *reg;
-					reg = portConfigRegister(hardware().sck_pin[sck_pin_index]);
+					reg = portConfigRegister(hardware.sck_pin[sck_pin_index]);
 					*reg = 0;
-					reg = portConfigRegister(hardware().sck_pin[i]);
-					*reg = hardware().sck_mux[i];
+					reg = portConfigRegister(hardware.sck_pin[i]);
+					*reg = hardware.sck_mux[i];
 				}	
 				sck_pin_index = i;
 				return;
@@ -1073,32 +1075,32 @@ void SPIClass::setSCK(uint8_t pin)
 
 bool SPIClass::pinIsChipSelect(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if (pin == hardware().cs_pin[i]) return hardware().cs_mask[i];
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if (pin == hardware.cs_pin[i]) return hardware.cs_mask[i];
 	}
 	return 0;
 }
 
 bool SPIClass::pinIsMOSI(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-		if (pin == hardware().mosi_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+		if (pin == hardware.mosi_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsMISO(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-		if (pin == hardware().miso_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+		if (pin == hardware.miso_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsSCK(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-		if (pin == hardware().sck_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+		if (pin == hardware.sck_pin[i]) return true;
 	}
 	return false;
 }
@@ -1106,11 +1108,11 @@ bool SPIClass::pinIsSCK(uint8_t pin)
 // setCS() is not intended for use from normal Arduino programs/sketches.
 uint8_t SPIClass::setCS(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if  (pin == hardware().cs_pin[i]) {
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if  (pin == hardware.cs_pin[i]) {
 			volatile uint32_t *reg = portConfigRegister(pin);
-			*reg = hardware().cs_mux[i];
-			return hardware().cs_mask[i];
+			*reg = hardware.cs_mux[i];
+			return hardware.cs_mask[i];
 		}
 	}
 	return 0;
@@ -1172,7 +1174,7 @@ bool SPIClass::initDMAChannels() {
 	_dmaTX->disable();
 	_dmaTX->destination((volatile uint8_t&)port().DL);
 	_dmaTX->disableOnCompletion();
-	_dmaTX->triggerAtHardwareEvent(hardware().tx_dma_channel);
+	_dmaTX->triggerAtHardwareEvent(hardware.tx_dma_channel);
 
 
 	_dmaRX = new DMAChannel();
@@ -1184,8 +1186,8 @@ bool SPIClass::initDMAChannels() {
 	_dmaRX->disable();
 	_dmaRX->source((volatile uint8_t&)port().DL);
 	_dmaRX->disableOnCompletion();
-	_dmaRX->triggerAtHardwareEvent(hardware().rx_dma_channel);
-	_dmaRX->attachInterrupt(hardware().dma_isr);
+	_dmaRX->triggerAtHardwareEvent(hardware.rx_dma_channel);
+	_dmaRX->attachInterrupt(hardware.dma_isr);
 	_dmaRX->interruptAtCompletion();
 
 	_dma_state = DMAState::idle;  // Should be first thing set!

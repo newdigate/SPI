@@ -457,8 +457,8 @@ public:
 
 	enum DMAState { notAllocated, idle, active, completed};
 public:
-	constexpr SPIClass(uintptr_t myport, uintptr_t myhardware)
-		: port_addr(myport), hardware_addr(myhardware) {
+	constexpr SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
+		: port_addr(myport), hardware(myhardware) {
 	}
 	friend uintptr_t Teensyduino_Test_constinit_SPI(int instance, int index);
 	// Initialize the SPI library
@@ -650,10 +650,9 @@ public:
 
 private:
 	KINETISK_SPI_t & port() { return *(KINETISK_SPI_t *)port_addr; }
-	const SPI_Hardware_t & hardware() { return *(const SPI_Hardware_t *)hardware_addr; }
-	void updateCTAR(uint32_t ctar);
 	uintptr_t port_addr;
-	uintptr_t hardware_addr;
+	const SPI_Hardware_t &hardware;
+	void updateCTAR(uint32_t ctar);
 	uint8_t miso_pin_index = 0;
 	uint8_t mosi_pin_index = 0;
 	uint8_t sck_pin_index = 0;
@@ -824,8 +823,8 @@ public:
 	static const SPI_Hardware_t spi1_hardware;
 	enum DMAState { notAllocated, idle, active, completed};
 public:
-	constexpr SPIClass(uintptr_t myport, uintptr_t myhardware)
-		: port_addr(myport), hardware_addr(myhardware) {
+	constexpr SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
+		: port_addr(myport), hardware(myhardware) {
 	}
 	friend uintptr_t Teensyduino_Test_constinit_SPI(int instance, int index);
 	// Initialize the SPI library
@@ -870,7 +869,7 @@ public:
 		inTransactionFlag = 1;
 		#endif
 		port().C1 = settings.c1;
-		port().BR = settings.br[hardware().br_index];
+		port().BR = settings.br[hardware.br_index];
 	}
 
 	// Write to the SPI bus (MOSI pin) and also receive (MISO pin)
@@ -962,7 +961,7 @@ public:
 	// This function is deprecated.	 New applications should use
 	// beginTransaction() to configure SPI settings.
 	void setClockDivider(uint8_t clockDiv) {
-		unsigned int i = hardware().br_index;
+		unsigned int i = hardware.br_index;
 		if (clockDiv == SPI_CLOCK_DIV2) {
 			port().BR = (SPISettings(12000000, MSBFIRST, SPI_MODE0).br[i]);
 		} else if (clockDiv == SPI_CLOCK_DIV4) {
@@ -1004,9 +1003,8 @@ public:
 
 private:
 	KINETISL_SPI_t & port() { return *(KINETISL_SPI_t *)port_addr; }
-	const SPI_Hardware_t & hardware() { return *(const SPI_Hardware_t *)hardware_addr; }
 	uintptr_t port_addr;
-	uintptr_t hardware_addr;
+	const SPI_Hardware_t &hardware;
 	uint32_t interruptMask = 0;
 	uint32_t interruptSave = 0;
 	uint8_t mosi_pin_index = 0;
@@ -1129,9 +1127,6 @@ public:
 	constexpr SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
 		: port_addr(myport), hardware(myhardware) {
 	}
-//	constexpr SPIClass(IMXRT_LPSPI_t *myport, const SPI_Hardware_t *myhardware)
-//		: port(myport), hardware(myhardware) {
-//	}
 	friend uintptr_t Teensyduino_Test_constinit_SPI(int instance, int index);
 	// Initialize the SPI library
 	void begin();
