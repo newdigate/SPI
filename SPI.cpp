@@ -473,7 +473,7 @@ uint8_t SPIClass::setCS(uint8_t pin)
 
 void SPIClass::setMOSI(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setMOSI_soft(pin);
 	}
 	if (pin != hardware().mosi_pin[mosi_pin_index]) {
@@ -495,7 +495,7 @@ void SPIClass::setMOSI(uint8_t pin)
 
 void SPIClass::setMISO(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setMISO_soft(pin);
 	}
 	if (pin != hardware().miso_pin[miso_pin_index]) {
@@ -517,7 +517,7 @@ void SPIClass::setMISO(uint8_t pin)
 
 void SPIClass::setSCK(uint8_t pin)
 {
-	if (hardware_addr == (uintptr_t)&spi0_hardware) {
+	if ((uintptr_t)&hardware == (uintptr_t)&spi0_hardware) {
 		SPCR.setSCK_soft(pin);
 	}
 	if (pin != hardware().sck_pin[sck_pin_index]) {
@@ -1275,31 +1275,31 @@ void SPIClass::begin()
 	// CBCMR[LPSPI_PODF] - div4 = 132 MHz
 
 
-	hardware().clock_gate_register &= ~hardware().clock_gate_mask;
+	hardware.clock_gate_register &= ~hardware.clock_gate_mask;
 
 	CCM_CBCMR = (CCM_CBCMR & ~(CCM_CBCMR_LPSPI_PODF_MASK | CCM_CBCMR_LPSPI_CLK_SEL_MASK)) |
-		CCM_CBCMR_LPSPI_PODF(2) | CCM_CBCMR_LPSPI_CLK_SEL(1); // pg 714
-//		CCM_CBCMR_LPSPI_PODF(6) | CCM_CBCMR_LPSPI_CLK_SEL(2); // pg 714
+		CCM_CBCMR_LPSPI_PODF(2) | CCM_CBCMR_LPSPI_CLK_SEL(1); // pg 1049
+//		CCM_CBCMR_LPSPI_PODF(6) | CCM_CBCMR_LPSPI_CLK_SEL(2); // pg 1049
 
 	uint32_t fastio = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_SPEED(2);
 	//uint32_t fastio = IOMUXC_PAD_DSE(6) | IOMUXC_PAD_SPEED(1);
 	//uint32_t fastio = IOMUXC_PAD_DSE(3) | IOMUXC_PAD_SPEED(3);
-	//Serial.printf("SPI MISO: %d MOSI: %d, SCK: %d\n", hardware().miso_pin[miso_pin_index], hardware().mosi_pin[mosi_pin_index], hardware().sck_pin[sck_pin_index]);
-	*(portControlRegister(hardware().miso_pin[miso_pin_index])) = fastio;
-	*(portControlRegister(hardware().mosi_pin[mosi_pin_index])) = fastio;
-	*(portControlRegister(hardware().sck_pin[sck_pin_index])) = fastio;
+	//Serial.printf("SPI MISO: %d MOSI: %d, SCK: %d\n", hardware.miso_pin[miso_pin_index], hardware.mosi_pin[mosi_pin_index], hardware.sck_pin[sck_pin_index]);
+	*(portControlRegister(hardware.miso_pin[miso_pin_index])) = fastio;
+	*(portControlRegister(hardware.mosi_pin[mosi_pin_index])) = fastio;
+	*(portControlRegister(hardware.sck_pin[sck_pin_index])) = fastio;
 
 	//printf("CBCMR = %08lX\n", CCM_CBCMR);
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
-	*(portConfigRegister(hardware().miso_pin[miso_pin_index])) = hardware().miso_mux[miso_pin_index];
-	*(portConfigRegister(hardware().mosi_pin [mosi_pin_index])) = hardware().mosi_mux[mosi_pin_index];
-	*(portConfigRegister(hardware().sck_pin [sck_pin_index])) = hardware().sck_mux[sck_pin_index];
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
+	*(portConfigRegister(hardware.miso_pin[miso_pin_index])) = hardware.miso_mux[miso_pin_index];
+	*(portConfigRegister(hardware.mosi_pin [mosi_pin_index])) = hardware.mosi_mux[mosi_pin_index];
+	*(portConfigRegister(hardware.sck_pin [sck_pin_index])) = hardware.sck_mux[sck_pin_index];
 
 	// Set the Mux pins 
 	//Serial.println("SPI: Set Input select registers");
-	hardware().sck_select_input_register = hardware().sck_select_val[sck_pin_index];
-	hardware().miso_select_input_register = hardware().miso_select_val[miso_pin_index];
-	hardware().mosi_select_input_register = hardware().mosi_select_val[mosi_pin_index];
+	hardware.sck_select_input_register = hardware.sck_select_val[sck_pin_index];
+	hardware.miso_select_input_register = hardware.miso_select_val[miso_pin_index];
+	hardware.mosi_select_input_register = hardware.mosi_select_val[mosi_pin_index];
 
 	//digitalWriteFast(10, HIGH);
 	//pinMode(10, OUTPUT);
@@ -1317,7 +1317,7 @@ void SPIClass::begin()
 
 void SPIClass::setClockDivider_noInline(uint32_t clk) {
 	// Again depreciated, but... 
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	if (clk != _clock) {
 		static const uint32_t clk_sel[4] = {664615384,  // PLL3 PFD1
 					     720000000,  // PLL3 PFD0
@@ -1354,8 +1354,8 @@ void SPIClass::setClockDivider_noInline(uint32_t clk) {
 
 uint8_t SPIClass::pinIsChipSelect(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if (pin == hardware().cs_pin[i]) return hardware().cs_mask[i];
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if (pin == hardware.cs_pin[i]) return hardware.cs_mask[i];
 	}
 	return 0;
 }
@@ -1373,24 +1373,24 @@ bool SPIClass::pinIsChipSelect(uint8_t pin1, uint8_t pin2)
 
 bool SPIClass::pinIsMOSI(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-		if (pin == hardware().mosi_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+		if (pin == hardware.mosi_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsMISO(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-		if (pin == hardware().miso_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+		if (pin == hardware.miso_pin[i]) return true;
 	}
 	return false;
 }
 
 bool SPIClass::pinIsSCK(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-		if (pin == hardware().sck_pin[i]) return true;
+	for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+		if (pin == hardware.sck_pin[i]) return true;
 	}
 	return false;
 }
@@ -1398,12 +1398,12 @@ bool SPIClass::pinIsSCK(uint8_t pin)
 // setCS() is not intended for use from normal Arduino programs/sketches.
 uint8_t SPIClass::setCS(uint8_t pin)
 {
-	for (unsigned int i = 0; i < sizeof(hardware().cs_pin); i++) {
-		if (pin == hardware().cs_pin[i]) {
-			*(portConfigRegister(pin)) = hardware().cs_mux[i];
-			if (hardware().pcs_select_input_register[i])
-				*hardware().pcs_select_input_register[i] = hardware().pcs_select_val[i];
-			return hardware().cs_mask[i];
+	for (unsigned int i = 0; i < sizeof(hardware.cs_pin); i++) {
+		if (pin == hardware.cs_pin[i]) {
+			*(portConfigRegister(pin)) = hardware.cs_mux[i];
+			if (hardware.pcs_select_input_register[i])
+				*hardware.pcs_select_input_register[i] = hardware.pcs_select_val[i];
+			return hardware.cs_mask[i];
 		}
 	}
 	return 0;
@@ -1411,15 +1411,15 @@ uint8_t SPIClass::setCS(uint8_t pin)
 
 void SPIClass::setMOSI(uint8_t pin)
 {
-	if (pin != hardware().mosi_pin[mosi_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().mosi_pin); i++) {
-			if (pin == hardware().mosi_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.mosi_pin[mosi_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.mosi_pin); i++) {
+			if (pin == hardware.mosi_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					// BUGBUG:: Unclear what to do with previous pin as there is no unused setting like t3.x
 					uint32_t fastio = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_SPEED(2);
-					*(portControlRegister(hardware().mosi_pin[i])) = fastio;
-					*(portConfigRegister(hardware().mosi_pin [i])) = hardware().mosi_mux[i];
-					hardware().mosi_select_input_register = hardware().mosi_select_val[i];
+					*(portControlRegister(hardware.mosi_pin[i])) = fastio;
+					*(portConfigRegister(hardware.mosi_pin [i])) = hardware.mosi_mux[i];
+					hardware.mosi_select_input_register = hardware.mosi_select_val[i];
 				}	
 				mosi_pin_index = i;
 				return;
@@ -1430,15 +1430,15 @@ void SPIClass::setMOSI(uint8_t pin)
 
 void SPIClass::setMISO(uint8_t pin)
 {
-	if (pin != hardware().miso_pin[miso_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().miso_pin); i++) {
-			if (pin == hardware().miso_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.miso_pin[miso_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.miso_pin); i++) {
+			if (pin == hardware.miso_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					// BUGBUG:: Unclear what to do with previous pin as there is no unused setting like t3.x
 					uint32_t fastio = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_SPEED(2);
-					*(portControlRegister(hardware().miso_pin[i])) = fastio;
-					*(portConfigRegister(hardware().miso_pin[i])) = hardware().miso_mux[i];
-					hardware().miso_select_input_register = hardware().miso_select_val[i];
+					*(portControlRegister(hardware.miso_pin[i])) = fastio;
+					*(portConfigRegister(hardware.miso_pin[i])) = hardware.miso_mux[i];
+					hardware.miso_select_input_register = hardware.miso_select_val[i];
 				}	
 				miso_pin_index = i;
 				return;
@@ -1449,15 +1449,15 @@ void SPIClass::setMISO(uint8_t pin)
 
 void SPIClass::setSCK(uint8_t pin)
 {
-	if (pin != hardware().sck_pin[sck_pin_index]) {
-		for (unsigned int i = 0; i < sizeof(hardware().sck_pin); i++) {
-			if (pin == hardware().sck_pin[i] ) {
-				if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (pin != hardware.sck_pin[sck_pin_index]) {
+		for (unsigned int i = 0; i < sizeof(hardware.sck_pin); i++) {
+			if (pin == hardware.sck_pin[i] ) {
+				if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 					// BUGBUG:: Unclear what to do with previous pin as there is no unused setting like t3.x
 					uint32_t fastio = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_SPEED(2);
-					*(portControlRegister(hardware().sck_pin[i])) = fastio;
-					*(portConfigRegister(hardware().sck_pin [i])) = hardware().sck_mux[i];
-					hardware().sck_select_input_register = hardware().sck_select_val[i];
+					*(portControlRegister(hardware.sck_pin[i])) = fastio;
+					*(portConfigRegister(hardware.sck_pin [i])) = hardware.sck_mux[i];
+					hardware.sck_select_input_register = hardware.sck_select_val[i];
 				}	
 				sck_pin_index = i;
 				return;
@@ -1469,7 +1469,7 @@ void SPIClass::setSCK(uint8_t pin)
 
 void SPIClass::setBitOrder(uint8_t bitOrder)
 {
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 
 	if (bitOrder == LSBFIRST) {
 		port().TCR |= LPSPI_TCR_LSBF;
@@ -1480,7 +1480,7 @@ void SPIClass::setBitOrder(uint8_t bitOrder)
 
 void SPIClass::setDataMode(uint8_t dataMode)
 {
-	hardware().clock_gate_register |= hardware().clock_gate_mask;
+	hardware.clock_gate_register |= hardware.clock_gate_mask;
 	//SPCR = (SPCR & ~SPI_MODE_MASK) | dataMode;
 
 	// Handle Data Mode
@@ -1502,6 +1502,7 @@ void _spi_dma_rxISR0(void) {SPI.dma_rxisr();}
 // NOTE pin definitions are in the order MISO, MOSI, SCK, CS 
 // With each group, having pin number[n], setting[n], INPUT_SELECT_MUX settings[n], SELECT INPUT register
 #if defined(ARDUINO_TEENSY41)
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI4(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI4_TX, DMAMUX_SOURCE_LPSPI4_RX, _spi_dma_rxISR0,
@@ -1521,9 +1522,11 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 	3 | 0x10, 2 | 0x10, 2 | 0x10, 
 	1, 2, 3,
 	0, 0, 0,
-	&IOMUXC_LPSPI4_PCS0_SELECT_INPUT, 0, 0
+	//&IOMUXC_LPSPI4_PCS0_SELECT_INPUT, 0, 0
+	NULL, 0, 0
 };
 #else
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI4(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI4_TX, DMAMUX_SOURCE_LPSPI4_RX, _spi_dma_rxISR0,
@@ -1547,16 +1550,16 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 };
 #endif
 
-//using &IMXRT_LPSPI4_S somehow interferes with constexpr static init, but why?
+//using pointers interferes with constexpr static init, must be integers and const ref
 //details: https://forum.pjrc.com/threads/73154
-//SPIClass SPI((uintptr_t)&IMXRT_LPSPI4_S, (uintptr_t)&SPIClass::spiclass_lpspi4_hardware);
-SPIClass SPI(IMXRT_LPSPI4_ADDRESS, (uintptr_t)&SPIClass::spiclass_lpspi4_hardware);
+SPIClass SPI(IMXRT_LPSPI4_ADDRESS, SPIClass::spiclass_lpspi4_hardware);
 
 #if defined(__IMXRT1062__)
 // T4 has two other possible SPI objects...
 void _spi_dma_rxISR1(void) {SPI1.dma_rxisr();}
 
 #if defined(ARDUINO_TEENSY41)
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI3(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI3_TX, DMAMUX_SOURCE_LPSPI3_RX, _spi_dma_rxISR1,
@@ -1579,6 +1582,7 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
 	&IOMUXC_LPSPI3_PCS0_SELECT_INPUT, &IOMUXC_LPSPI3_PCS0_SELECT_INPUT, 0
 };
 #else
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI3(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI3_TX, DMAMUX_SOURCE_LPSPI3_RX, _spi_dma_rxISR1,
@@ -1601,12 +1605,12 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
 	&IOMUXC_LPSPI3_PCS0_SELECT_INPUT
 };
 #endif
-//SPIClass SPI1((uintptr_t)&IMXRT_LPSPI3_S, (uintptr_t)&SPIClass::spiclass_lpspi3_hardware);
-SPIClass SPI1(IMXRT_LPSPI3_ADDRESS, (uintptr_t)&SPIClass::spiclass_lpspi3_hardware);
+SPIClass SPI1(IMXRT_LPSPI3_ADDRESS, SPIClass::spiclass_lpspi3_hardware);
 
 void _spi_dma_rxISR2(void) {SPI2.dma_rxisr();}
 
 #if defined(ARDUINO_TEENSY41)
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI1(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI1_TX, DMAMUX_SOURCE_LPSPI1_RX, _spi_dma_rxISR1,
@@ -1629,6 +1633,7 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	&IOMUXC_LPSPI1_PCS0_SELECT_INPUT, 0, 0
 };
 #else
+PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI1(CCM_CCGR_ON),
 	DMAMUX_SOURCE_LPSPI1_TX, DMAMUX_SOURCE_LPSPI1_RX, _spi_dma_rxISR1,
@@ -1651,11 +1656,9 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	&IOMUXC_LPSPI1_PCS0_SELECT_INPUT
 };
 #endif
-//SPIClass SPI2((uintptr_t)&IMXRT_LPSPI1_S, (uintptr_t)&SPIClass::spiclass_lpspi1_hardware);
-SPIClass SPI2(IMXRT_LPSPI1_ADDRESS, (uintptr_t)&SPIClass::spiclass_lpspi1_hardware);
+SPIClass SPI2(IMXRT_LPSPI1_ADDRESS, SPIClass::spiclass_lpspi1_hardware);
 #endif
 
-//SPIClass SPI(&IMXRT_LPSPI4_S, &spiclass_lpspi4_hardware);
 
 void SPIClass::usingInterrupt(IRQ_NUMBER_t interruptName)
 {
@@ -1687,9 +1690,9 @@ void SPIClass::transfer(const void * buf, void * retbuf, size_t count)
 {
 
 	if (count == 0) return;
-    uint8_t *p_write = (uint8_t*)buf;
-    uint8_t *p_read = (uint8_t*)retbuf;
-    size_t count_read = count;
+	uint8_t *p_write = (uint8_t*)buf;
+	uint8_t *p_read = (uint8_t*)retbuf;
+	size_t count_read = count;
 
 	// Pass 1 keep it simple and don't try packing 8 bits into 16 yet..
 	// Lets clear the reader queue
@@ -1804,11 +1807,11 @@ void SPIClass::transfer32(const void * buf, void * retbuf, size_t count)
 
 void SPIClass::end() {
 	// only do something if we have begun
-	if (hardware().clock_gate_register & hardware().clock_gate_mask) {
+	if (hardware.clock_gate_register & hardware.clock_gate_mask) {
 		port().CR = 0;  // turn off the enable
-		pinMode(hardware().miso_pin[miso_pin_index], INPUT_DISABLE);
-		pinMode(hardware().mosi_pin[mosi_pin_index], INPUT_DISABLE);
-		pinMode(hardware().sck_pin[sck_pin_index], INPUT_DISABLE);
+		pinMode(hardware.miso_pin[miso_pin_index], INPUT_DISABLE);
+		pinMode(hardware.mosi_pin[mosi_pin_index], INPUT_DISABLE);
+		pinMode(hardware.sck_pin[sck_pin_index], INPUT_DISABLE);
 	}
 }
 
@@ -1843,8 +1846,8 @@ bool SPIClass::initDMAChannels() {
 	_dmaRX->disable();
 	_dmaRX->source((volatile uint8_t&)port().RDR);
 	_dmaRX->disableOnCompletion();
-	_dmaRX->triggerAtHardwareEvent(hardware().rx_dma_channel);
-	_dmaRX->attachInterrupt(hardware().dma_rxisr);
+	_dmaRX->triggerAtHardwareEvent(hardware.rx_dma_channel);
+	_dmaRX->attachInterrupt(hardware.dma_rxisr);
 	_dmaRX->interruptAtCompletion();
 
 	// We may be using settings chain here so lets set it up. 
@@ -1854,8 +1857,8 @@ bool SPIClass::initDMAChannels() {
 	_dmaTX->destination((volatile uint8_t&)port().TDR);
 	_dmaTX->disableOnCompletion();
 
-	if (hardware().tx_dma_channel) {
-		_dmaTX->triggerAtHardwareEvent(hardware().tx_dma_channel);
+	if (hardware.tx_dma_channel) {
+		_dmaTX->triggerAtHardwareEvent(hardware.tx_dma_channel);
 	} else {
 //		Serial.printf("SPI InitDMA tx triger by RX: %x\n", (uint32_t)_dmaRX);
 	    _dmaTX->triggerAtTransfersOf(*_dmaRX);

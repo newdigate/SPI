@@ -1126,8 +1126,8 @@ public:
 	static const SPI_Hardware_t spiclass_lpspi1_hardware;
 #endif	
 public:
-	constexpr SPIClass(uintptr_t myport, uintptr_t myhardware)
-		: port_addr(myport), hardware_addr(myhardware) {
+	constexpr SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
+		: port_addr(myport), hardware(myhardware) {
 	}
 //	constexpr SPIClass(IMXRT_LPSPI_t *myport, const SPI_Hardware_t *myhardware)
 //		: port(myport), hardware(myhardware) {
@@ -1381,9 +1381,8 @@ public:
 private:
 private:
 	IMXRT_LPSPI_t & port() { return *(IMXRT_LPSPI_t *)port_addr; }
-	const SPI_Hardware_t & hardware() { return *(const SPI_Hardware_t *)hardware_addr; }
 	uintptr_t port_addr;
-	uintptr_t hardware_addr;
+	const SPI_Hardware_t &hardware;
 
 	uint32_t _clock = 0;
 	uint32_t _ccr = 0;
