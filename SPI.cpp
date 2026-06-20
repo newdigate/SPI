@@ -1591,7 +1591,32 @@ SPIClass SPI(IMXRT_LPSPI4_ADDRESS, SPIClass::spiclass_lpspi4_hardware);
 // T4 has two other possible SPI objects...
 void _spi_dma_rxISR1(void) {SPI1.dma_rxisr();}
 
-#if defined(ARDUINO_TEENSY41)
+#if defined(ARDUINO_MIMXRT1060_EVKB)
+// EVKB SPI1 = LPSPI3 on AD_B1_12-15 (ALT2, input daisy 1). NOTE: these are chip
+// pads, NOT broken out on the EVKB Arduino headers (core pins 23-26).
+PROGMEM
+const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
+	CCM_CCGR1, CCM_CCGR1_LPSPI3(CCM_CCGR_ON),
+	DMAMUX_SOURCE_LPSPI3_TX, DMAMUX_SOURCE_LPSPI3_RX, _spi_dma_rxISR1,
+	24,            // MISO = pin 24 = AD_B1_13 (LPSPI3_SDI)
+	2 | 0x10,
+	1,
+	IOMUXC_LPSPI3_SDI_SELECT_INPUT,
+	25,            // MOSI = pin 25 = AD_B1_14 (LPSPI3_SDO)
+	2 | 0x10,
+	1,
+	IOMUXC_LPSPI3_SDO_SELECT_INPUT,
+	26,            // SCK = pin 26 = AD_B1_15 (LPSPI3_SCK)
+	2 | 0x10,
+	1,
+	IOMUXC_LPSPI3_SCK_SELECT_INPUT,
+	23,            // CS = pin 23 = AD_B1_12 (LPSPI3_PCS0)
+	2 | 0x10,
+	1,
+	1,
+	&IOMUXC_LPSPI3_PCS0_SELECT_INPUT
+};
+#elif defined(ARDUINO_TEENSY41)
 PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi3_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI3(CCM_CCGR_ON),
@@ -1642,7 +1667,33 @@ SPIClass SPI1(IMXRT_LPSPI3_ADDRESS, SPIClass::spiclass_lpspi3_hardware);
 
 void _spi_dma_rxISR2(void) {SPI2.dma_rxisr();}
 
-#if defined(ARDUINO_TEENSY41)
+#if defined(ARDUINO_MIMXRT1060_EVKB)
+// EVKB SPI2 = LPSPI4 on B0_00-03 (ALT3, daisy 0). LPSPI1 is the default SPI on
+// this board, so SPI2 uses LPSPI4. NOTE: chip pads, NOT on the Arduino headers
+// (core pins 27-30). The SPI2 object below binds to IMXRT_LPSPI4_ADDRESS.
+PROGMEM
+const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
+	CCM_CCGR1, CCM_CCGR1_LPSPI4(CCM_CCGR_ON),
+	DMAMUX_SOURCE_LPSPI4_TX, DMAMUX_SOURCE_LPSPI4_RX, _spi_dma_rxISR2,
+	28,            // MISO = pin 28 = B0_01 (LPSPI4_SDI)
+	3 | 0x10,
+	0,
+	IOMUXC_LPSPI4_SDI_SELECT_INPUT,
+	29,            // MOSI = pin 29 = B0_02 (LPSPI4_SDO)
+	3 | 0x10,
+	0,
+	IOMUXC_LPSPI4_SDO_SELECT_INPUT,
+	30,            // SCK = pin 30 = B0_03 (LPSPI4_SCK)
+	3 | 0x10,
+	0,
+	IOMUXC_LPSPI4_SCK_SELECT_INPUT,
+	27,            // CS = pin 27 = B0_00 (LPSPI4_PCS0)
+	3 | 0x10,
+	1,
+	0,
+	&IOMUXC_LPSPI4_PCS0_SELECT_INPUT
+};
+#elif defined(ARDUINO_TEENSY41)
 PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI1(CCM_CCGR_ON),
@@ -1689,7 +1740,11 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi1_hardware = {
 	&IOMUXC_LPSPI1_PCS0_SELECT_INPUT
 };
 #endif
+#if defined(ARDUINO_MIMXRT1060_EVKB)
+SPIClass SPI2(IMXRT_LPSPI4_ADDRESS, SPIClass::spiclass_lpspi1_hardware);  // EVKB: SPI2 = LPSPI4
+#else
 SPIClass SPI2(IMXRT_LPSPI1_ADDRESS, SPIClass::spiclass_lpspi1_hardware);
+#endif
 #endif
 
 
