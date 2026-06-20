@@ -1501,9 +1501,36 @@ void SPIClass::setDataMode(uint8_t dataMode)
 
 void _spi_dma_rxISR0(void) {SPI.dma_rxisr();}
 
-// NOTE pin definitions are in the order MISO, MOSI, SCK, CS 
+// NOTE pin definitions are in the order MISO, MOSI, SCK, CS
 // With each group, having pin number[n], setting[n], INPUT_SELECT_MUX settings[n], SELECT INPUT register
-#if defined(ARDUINO_TEENSY41)
+#if defined(ARDUINO_MIMXRT1060_EVKB)
+// MIMXRT1060-EVKB Arduino SPI header (J17): D10-D13 are on GPIO_SD_B0_xx, whose
+// ALT4 is LPSPI1 (SCK=SD_B0_00, PCS0=SD_B0_01, SDO=SD_B0_02, SDI=SD_B0_03).
+// Values (mux ALT4, input daisy) are from the MCUXpresso SDK fsl_iomuxc.h.
+// The "lpspi4" member name is reused; the SPI object below binds it to LPSPI1.
+PROGMEM
+const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
+	CCM_CCGR1, CCM_CCGR1_LPSPI1(CCM_CCGR_ON),
+	DMAMUX_SOURCE_LPSPI1_TX, DMAMUX_SOURCE_LPSPI1_RX, _spi_dma_rxISR0,
+	12,            // MISO = pin 12 = GPIO_SD_B0_03 (LPSPI1_SDI)
+	4 | 0x10,
+	1,
+	IOMUXC_LPSPI1_SDI_SELECT_INPUT,
+	11,            // MOSI = pin 11 = GPIO_SD_B0_02 (LPSPI1_SDO)
+	4 | 0x10,
+	1,
+	IOMUXC_LPSPI1_SDO_SELECT_INPUT,
+	13,            // SCK = pin 13 = GPIO_SD_B0_00 (LPSPI1_SCK)
+	4 | 0x10,
+	1,
+	IOMUXC_LPSPI1_SCK_SELECT_INPUT,
+	10,            // CS = pin 10 = GPIO_SD_B0_01 (LPSPI1_PCS0)
+	4 | 0x10,
+	1,             // cs_mask: PCS0
+	0,             // pcs input daisy
+	&IOMUXC_LPSPI1_PCS0_SELECT_INPUT
+};
+#elif defined(ARDUINO_TEENSY41)
 PROGMEM
 const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 	CCM_CCGR1, CCM_CCGR1_LPSPI4(CCM_CCGR_ON),
@@ -1554,7 +1581,11 @@ const SPIClass::SPI_Hardware_t  SPIClass::spiclass_lpspi4_hardware = {
 
 //using pointers interferes with constexpr static init, must be integers and const ref
 //details: https://forum.pjrc.com/threads/73154
+#if defined(ARDUINO_MIMXRT1060_EVKB)
+SPIClass SPI(IMXRT_LPSPI1_ADDRESS, SPIClass::spiclass_lpspi4_hardware);  // EVKB: SPI header = LPSPI1
+#else
 SPIClass SPI(IMXRT_LPSPI4_ADDRESS, SPIClass::spiclass_lpspi4_hardware);
+#endif
 
 #if defined(__IMXRT1062__)
 // T4 has two other possible SPI objects...
