@@ -1424,95 +1424,10 @@ private:
 /**********************************************************/
 
 #elif defined(__IMXRT1176__)
-
-#define SPI_HAS_NOTUSINGINTERRUPT 1
-#define SPI_ATOMIC_VERSION 1
-
-class SPISettings {
-public:
-	SPISettings(uint32_t clockIn, uint8_t bitOrderIn, uint8_t dataModeIn)
-		: _clock(clockIn), _bitOrder(bitOrderIn), _dataMode(dataModeIn) {}
-	SPISettings()
-		: _clock(4000000), _bitOrder(MSBFIRST), _dataMode(SPI_MODE0) {}
-private:
-	inline uint32_t clock() const { return _clock; }
-	inline uint8_t bitOrder() const { return _bitOrder; }
-	inline uint8_t dataMode() const { return _dataMode; }
-
-	uint32_t _clock;
-	uint8_t _bitOrder;
-	uint8_t _dataMode;
-	friend class SPIClass;
-};
-
-class SPIClass { // MIMXRT1176-EVKB — LPSPI1, full Teensy API over the RT1176 core driver
-public:
-	static const uint8_t CNT_MISO_PINS = 1;
-	static const uint8_t CNT_MOSI_PINS = 1;
-	static const uint8_t CNT_SCK_PINS = 1;
-	static const uint8_t CNT_CS_PINS = 1;
-	typedef struct {
-		volatile uint32_t &lpcg;                 // LPSPI clock gate (write 1 to ungate)
-		volatile uint32_t &clock_root;           // CCM clock root
-		uint32_t clock_root_val;                 // value => mux/div (0 => 24 MHz)
-		uint32_t func_clock;                     // resulting functional clock (Hz)
-		void (*dma_rxisr)();
-		const uint8_t  miso_pin[CNT_MISO_PINS];
-		volatile uint32_t &miso_mux; uint32_t miso_mux_val; volatile uint32_t &miso_pad;
-		volatile uint32_t &miso_select_input_register; uint32_t miso_select_val;
-		const uint8_t  mosi_pin[CNT_MOSI_PINS];
-		volatile uint32_t &mosi_mux; uint32_t mosi_mux_val; volatile uint32_t &mosi_pad;
-		volatile uint32_t &mosi_select_input_register; uint32_t mosi_select_val;
-		const uint8_t  sck_pin[CNT_SCK_PINS];
-		volatile uint32_t &sck_mux; uint32_t sck_mux_val; volatile uint32_t &sck_pad;
-		volatile uint32_t &sck_select_input_register; uint32_t sck_select_val;
-		const uint8_t  cs_pin[CNT_CS_PINS];
-		uint32_t pad_ctl_val;
-	} SPI_Hardware_t;
-	static const SPI_Hardware_t spiclass_lpspi1_hardware;
-
-	SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
-		: port_addr(myport), hardware(myhardware) {}
-
-	void begin();
-	void end();
-	void usingInterrupt(uint8_t n) {}
-	void usingInterrupt(IRQ_NUMBER_t interruptName) {}
-	void notUsingInterrupt(IRQ_NUMBER_t interruptName) {}
-	void beginTransaction(SPISettings settings);
-	void endTransaction();
-	uint8_t  transfer(uint8_t data);
-	uint16_t transfer16(uint16_t data);
-	void     transfer(void *buf, size_t count);
-	void     transfer(const void *buf, void *retbuf, size_t count);
-	bool     transfer(const void *buf, void *retbuf, size_t count, EventResponderRef event_responder);
-	void     setBitOrder(uint8_t bitOrder);
-	void     setDataMode(uint8_t dataMode);
-	void     setClockDivider(uint8_t clockDiv) {}
-	uint8_t  setCS(uint8_t pin) { return 0; }
-	void     setMOSI(uint8_t pin) {}
-	void     setMISO(uint8_t pin) {}
-	void     setSCK(uint8_t pin) {}
-	bool     pinIsChipSelect(uint8_t pin) { return false; }
-	bool     pinIsMOSI(uint8_t pin) { return pin == hardware.mosi_pin[0]; }
-	bool     pinIsMISO(uint8_t pin) { return pin == hardware.miso_pin[0]; }
-	bool     pinIsSCK(uint8_t pin)  { return pin == hardware.sck_pin[0]; }
-
-	IMXRT_LPSPI_t & port() { return *(IMXRT_LPSPI_t *)port_addr; }
-private:
-	uintptr_t port_addr;
-	const SPI_Hardware_t &hardware;
-	uint32_t tcr_base = 0;
-	DMAChannel *_dmaTX = nullptr;
-	DMAChannel *_dmaRX = nullptr;
-	EventResponder *_dma_event_responder = nullptr;
-	volatile bool _transfer_done = true;
-	void setClockDividerHz(uint32_t clockHz);
-	void startDMA(const void *txbuf, void *rxbuf, size_t count);
-	static void dma_rxisr();
-};
-
-
+/* MIMXRT1176 (RT1170-EVKB): dedicated MIT-licensed implementation -- the
+ * class lives in SPIIMXRT1176.h, not in this GPL/LGPL-dual file. See
+ * LICENSE.md. */
+#include "SPIIMXRT1176.h"
 
 #endif
 
