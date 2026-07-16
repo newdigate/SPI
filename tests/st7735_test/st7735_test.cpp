@@ -5,31 +5,19 @@
 // ST7735 128x160 SPI TFT demo on the RT1176 EVKB Arduino header.
 //   SCK  -> D13 (GPIO_AD_28)   } driven by SPI.begin()
 //   MOSI -> D11 (GPIO_AD_30)   }  (connect MOSI -> ST7735 SDA, SCK -> SCL)
-//   DC   -> D8  (GPIO_AD_07 = GPIO9 bit 6)   raw-GPIO here
-//   CS   -> D10 (GPIO_AD_29 = GPIO9 bit 28)  raw-GPIO here
+//   DC   -> D8
+//   CS   -> D10
 //   RESET unplugged -> we use the ST7735 software reset (0x01).
-// The core's digital pin table only maps the LED, so DC/CS are driven directly.
+// Minimal hand-rolled driver kept as a cross-check for the ST7735_t3 port;
+// DC/CS use the core pin table (all 22 header pins are mapped).
 
-// ---- GPIO9 raw access (base 0x40C64000; GDIR=+0x04, DR_SET=+0x84, DR_CLEAR=+0x88) ----
-#define GPIO9_GDIR    (*(volatile uint32_t *)(0x40C64000u + 0x04u))
-#define GPIO9_DR_SET  (*(volatile uint32_t *)(0x40C64000u + 0x84u))
-#define GPIO9_DR_CLR  (*(volatile uint32_t *)(0x40C64000u + 0x88u))
-#define REG32(a)      (*(volatile uint32_t *)(a))
+#define DC_PIN  8
+#define CS_PIN 10
 
-#define DC_BIT   6u    // GPIO_AD_07 -> GPIO9.6
-#define CS_BIT  28u    // GPIO_AD_29 -> GPIO9.28
-
-static inline void dc_command() { GPIO9_DR_CLR = (1u << DC_BIT); }   // DC low = command
-static inline void dc_data()    { GPIO9_DR_SET = (1u << DC_BIT); }   // DC high = data
-static inline void cs_low()     { GPIO9_DR_CLR = (1u << CS_BIT); }
-static inline void cs_high()    { GPIO9_DR_SET = (1u << CS_BIT); }
-
-// Route a GPIO_AD pad to GPIO9 (ALT 0xA) as a push-pull output.
-static void gpio9_out(uint32_t mux_reg, uint32_t pad_reg, uint32_t bit) {
-	REG32(mux_reg) = 0xAu;          // ALT10 = GPIO9
-	REG32(pad_reg) = 0x0008u;       // DSE drive, push-pull
-	GPIO9_GDIR |= (1u << bit);      // output
-}
+static inline void dc_command() { digitalWrite(DC_PIN, LOW); }   // DC low = command
+static inline void dc_data()    { digitalWrite(DC_PIN, HIGH); }
+static inline void cs_low()     { digitalWrite(CS_PIN, LOW); }
+static inline void cs_high()    { digitalWrite(CS_PIN, HIGH); }
 
 // ---- ST7735 dimensions / colors ----
 #define TFT_W 128
@@ -90,9 +78,9 @@ void setup() {
 	while (!Serial1) {}
 	Serial1.println("ST7735 demo: SCK=D13 MOSI=D11(->SDA) DC=D8 CS=D10, SW-reset");
 
-	// DC + CS as GPIO9 outputs; idle CS high, DC data.
-	gpio9_out(0x400E8128u, 0x400E836Cu, DC_BIT);   // DC = GPIO_AD_07
-	gpio9_out(0x400E8180u, 0x400E83C4u, CS_BIT);   // CS = GPIO_AD_29
+	// DC + CS as GPIO outputs via the core pin table; idle CS high, DC data.
+	pinMode(DC_PIN, OUTPUT);
+	pinMode(CS_PIN, OUTPUT);
 	cs_high(); dc_data();
 
 	SPI.begin();
