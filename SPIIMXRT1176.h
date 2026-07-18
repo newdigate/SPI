@@ -37,6 +37,7 @@
 #include <Arduino.h>
 #include <DMAChannel.h>
 #include <EventResponder.h>
+#include "lpspi1176.h"
 
 /* Normally included from SPI.h after its common constants; keep fallbacks so
  * this header also works standalone. These are the standard Arduino SPI API
@@ -84,22 +85,12 @@ public:
 	static const uint8_t CNT_SCK_PINS = 1;
 	static const uint8_t CNT_CS_PINS = 1;
 	typedef struct {
-		volatile uint32_t &lpcg;                 // LPSPI clock gate (write 1 to ungate)
-		volatile uint32_t &clock_root;           // CCM clock root
-		uint32_t clock_root_val;                 // value => mux/div (0 => 24 MHz)
-		uint32_t func_clock;                     // resulting functional clock (Hz)
+		lpspi1176_hw_t hw;                       // shared C core hardware desc (lpspi1176.h)
 		void (*dma_rxisr)();
-		const uint8_t  miso_pin[CNT_MISO_PINS];
-		volatile uint32_t &miso_mux; uint32_t miso_mux_val; volatile uint32_t &miso_pad;
-		volatile uint32_t &miso_select_input_register; uint32_t miso_select_val;
-		const uint8_t  mosi_pin[CNT_MOSI_PINS];
-		volatile uint32_t &mosi_mux; uint32_t mosi_mux_val; volatile uint32_t &mosi_pad;
-		volatile uint32_t &mosi_select_input_register; uint32_t mosi_select_val;
+		const uint8_t  miso_pin[CNT_MISO_PINS];  // SDI
+		const uint8_t  mosi_pin[CNT_MOSI_PINS];  // SDO
 		const uint8_t  sck_pin[CNT_SCK_PINS];
-		volatile uint32_t &sck_mux; uint32_t sck_mux_val; volatile uint32_t &sck_pad;
-		volatile uint32_t &sck_select_input_register; uint32_t sck_select_val;
 		const uint8_t  cs_pin[CNT_CS_PINS];
-		uint32_t pad_ctl_val;
 	} SPI_Hardware_t;
 	static const SPI_Hardware_t spiclass_lpspi1_hardware;
 
@@ -132,6 +123,7 @@ public:
 
 	IMXRT_LPSPI_t & port() { return *(IMXRT_LPSPI_t *)port_addr; }
 private:
+	lpspi1176_regs_t *lp() { return (lpspi1176_regs_t *)port_addr; }
 	uintptr_t port_addr;
 	const SPI_Hardware_t &hardware;
 	uint32_t tcr_base = 0;
