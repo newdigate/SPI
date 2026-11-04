@@ -41,6 +41,7 @@
 // surface and the CM7-only DMA path.
 
 #include <stddef.h>
+#include <string.h>
 
 // The shared C core's overlay must equal the core header's (same silicon).
 static_assert(offsetof(lpspi1176_regs_t, CR)    == offsetof(IMXRT_LPSPI_t, CR),    "CR");
@@ -54,14 +55,33 @@ static_assert(offsetof(lpspi1176_regs_t, RSR)   == offsetof(IMXRT_LPSPI_t, RSR),
 static_assert(offsetof(lpspi1176_regs_t, RDR)   == offsetof(IMXRT_LPSPI_t, RDR),   "RDR");
 static_assert(sizeof(lpspi1176_regs_t) == sizeof(IMXRT_LPSPI_t), "LPSPI size");
 
+// Every method that reaches an LPSPI1 register or an IOMUXC pad goes through
+// one of the SPIIMXRT1176_NO_BUS early-outs below.  On Nosh the block's clock
+// is never ungated (begin() is where that would happen), so touching a
+// register there is a bus fault, not merely a wasted write -- which is why the
+// transfer paths bail out too rather than only begin().
 void SPIClass::begin() {
+#if SPIIMXRT1176_NO_BUS
+	return;   // Nosh: no bus; the LPSPI1 pads belong to Wi-Fi/BT and the backlight
+#else
 	lpspi1176_begin(lp(), &hardware.hw, 4000000u, &tcr_base);   // default 4 MHz
+#endif
 }
 
-void SPIClass::end() { lpspi1176_end(lp(), &hardware.hw); }
+void SPIClass::end() {
+#if SPIIMXRT1176_NO_BUS
+	return;
+#else
+	lpspi1176_end(lp(), &hardware.hw);
+#endif
+}
 
 void SPIClass::setClockDividerHz(uint32_t clockHz) {
+#if SPIIMXRT1176_NO_BUS
+	(void)clockHz;
+#else
 	lpspi1176_set_clock_hz(lp(), hardware.hw.func_clock, clockHz, &tcr_base);
+#endif
 }
 
 void SPIClass::beginTransaction(SPISettings s) {
@@ -86,11 +106,19 @@ void SPIClass::setDataMode(uint8_t dataMode) {
 }
 
 uint8_t SPIClass::transfer(uint8_t data) {
+#if SPIIMXRT1176_NO_BUS
+	(void)data; return 0xFFu;                                               // idle bus, no peripheral
+#else
 	return (uint8_t)lpspi1176_transfer_frame(lp(), tcr_base, data, 7u);    // 8-bit frame
+#endif
 }
 
 uint16_t SPIClass::transfer16(uint16_t data) {
+#if SPIIMXRT1176_NO_BUS
+	(void)data; return 0xFFFFu;
+#else
 	return (uint16_t)lpspi1176_transfer_frame(lp(), tcr_base, data, 15u);  // 16-bit frame
+#endif
 }
 
 void SPIClass::transfer(void *buf, size_t count) {
@@ -148,6 +176,11 @@ void SPIClass::dma_rxisr() {
 
 void SPIClass::transfer(const void *txbuf, void *rxbuf, size_t count) {
 	if (count == 0 || count > 32767) return;   // BITER/CITER are 16-bit; no chunking (single-shot)
+#if SPIIMXRT1176_NO_BUS
+	(void)txbuf;
+	if (rxbuf) memset(rxbuf, 0xFF, count);  // what the polled path would read: an idle bus
+	return;
+#endif
 	while (!_transfer_done) yield();        // wait for any in-flight transfer to finish first
 	_dma_event_responder = nullptr;
 	startDMA(txbuf, rxbuf, count);
@@ -156,6 +189,10 @@ void SPIClass::transfer(const void *txbuf, void *rxbuf, size_t count) {
 
 bool SPIClass::transfer(const void *txbuf, void *rxbuf, size_t count, EventResponderRef event_responder) {
 	if (count == 0 || count > 32767) return false;
+#if SPIIMXRT1176_NO_BUS
+	(void)txbuf; (void)rxbuf; (void)event_responder;
+	return false;                           // no bus: declined, as a busy bus would be
+#endif
 	if (!_transfer_done) return false;      // a transfer is already in progress
 	_dma_event_responder = &event_responder;
 	startDMA(txbuf, rxbuf, count);
@@ -166,6 +203,9 @@ bool SPIClass::transfer(const void *txbuf, void *rxbuf, size_t count, EventRespo
 // HW-verified core cores/imxrt1176/SPI_instances.cpp lpspi1_hw, now expressed
 // as the shared lpspi1176_hw_t desc (order: sck/AD_28, sdo=mosi/AD_30,
 // sdi=miso/AD_31), followed by the C++-only dma_rxisr + pin numbers.
+// On Nosh this table is data that nothing dereferences: the pads it names are
+// BT_DEV_WAKE / BACKLIGHT_CTL / WL_RST_B there, and every path that would
+// write them is behind SPIIMXRT1176_NO_BUS above.
 const SPIClass::SPI_Hardware_t SPIClass::spiclass_lpspi1_hardware = {
 	{ &CCM_LPCG104_DIRECT, &CCM_CLOCK_ROOT43_CONTROL, 0u, 24000000u,
 	  &IOMUXC_SW_MUX_CTL_PAD_GPIO_AD_28, 0x0u, &IOMUXC_SW_PAD_CTL_PAD_GPIO_AD_28,

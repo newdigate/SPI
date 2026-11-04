@@ -61,6 +61,21 @@
 #define SPI_HAS_NOTUSINGINTERRUPT 1
 #define SPI_ATOMIC_VERSION 1
 
+/* Nosh (ARDUINO_NOSH) wires no LPSPI bus to any connector, and LPSPI1's pads
+ * are spoken for: GPIO_AD_28 = BT_DEV_WAKE, AD_30 = BACKLIGHT_CTL, AD_31 =
+ * WL_RST_B (the M.2 W_DISABLE1 line).  An SPI.begin() that muxed them to ALT0
+ * would reset the Wi-Fi module and drop the panel backlight.  The SPI object
+ * still EXISTS on Nosh -- SdFat's SPI driver and other libraries name it at
+ * link time even when the card sits on SDIO -- but it owns no pads: begin() and
+ * end() touch nothing, transfers return all-ones (what an idle bus with no
+ * peripheral reads) without touching the clock-gated LPSPI1 block, and the DMA
+ * path declines.  SPIClass::busPresent() tells a sketch which case it is in. */
+#if defined(ARDUINO_NOSH)
+#define SPIIMXRT1176_NO_BUS 1
+#else
+#define SPIIMXRT1176_NO_BUS 0
+#endif
+
 class SPISettings {
 public:
 	SPISettings(uint32_t clockIn, uint8_t bitOrderIn, uint8_t dataModeIn)
@@ -96,6 +111,10 @@ public:
 
 	SPIClass(uintptr_t myport, const SPI_Hardware_t &myhardware)
 		: port_addr(myport), hardware(myhardware) {}
+
+	// False on a board with no SPI bus (Nosh): begin() is then a no-op and
+	// every transfer reads all-ones.  See the SPIIMXRT1176_NO_BUS note above.
+	static constexpr bool busPresent() { return SPIIMXRT1176_NO_BUS == 0; }
 
 	void begin();
 	void end();

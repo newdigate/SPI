@@ -4,6 +4,20 @@ http://www.pjrc.com/teensy/td_libs_SPI.html
 
 ![](http://www.pjrc.com/teensy/td_libs_SPI_1.jpg)
 
+## NXP MIMXRT1176 (MIMXRT1170-EVKB) and Nosh
+
+The RT1176 port (`SPIIMXRT1176.{h,cpp}`, `lpspi1176.{h,c}`, MIT) provides one
+object, `SPI` = LPSPI1 on GPIO_AD_28 (SCK) / AD_30 (MOSI) / AD_31 (MISO), the
+EVKB's Arduino SPI header (D13 / D11 / D12).
+
+On the Nosh board (`ARDUINO_NOSH`, from teensy-cmake-macros `TEENSY_BOARD NOSH`)
+no LPSPI bus reaches a connector and those three pads are BT_DEV_WAKE, the
+panel backlight enable and the Wi-Fi W_DISABLE line. The `SPI` object still
+exists there, because SdFat and other libraries name it at link time even with
+the card on SDIO, but it owns no pads: `SPI.begin()`/`end()` touch nothing,
+transfers return all-ones, the DMA transfer returns false, and
+`SPIClass::busPresent()` is `false`.
+
 ## NXP MIMXRT1060-EVKB
 
 This fork adds pin maps for the NXP MIMXRT1060-EVKB (selected with the
