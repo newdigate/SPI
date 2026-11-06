@@ -9,14 +9,18 @@ set(CPU_CORE_SPEED 996000000 CACHE STRING "RT1176 M7 core clock" FORCE)
 # NB: cache type STRING, not PATH -- CMake normalises PATH cache entries and
 # strips the trailing slash, but the macros build LINKER_FILE by raw string
 # concat ("${COREPATH}imxrt1176.ld"), so the trailing slash must survive.
-# This test now lives in the SPI library repo (SPI/tests/<name>/toolchain/), two
-# levels below the evkb checkout's siblings -- NOT under evkb itself -- so the core
-# path is resolved via the evkb checkout location rather than a relative walk.
-if(NOT DEFINED EVKB_ROOT)
-    set(EVKB_ROOT "$ENV{HOME}/Development/rt1170/evkb")
+# The core lives in the sibling teensy-cores checkout (it is no longer inside
+# evkb).  TEENSY_LIB_ROOT mirrors evkb.cmake and the test's CMakeLists.txt: -D
+# wins, then the environment, else $HOME/Development.
+if(NOT DEFINED TEENSY_LIB_ROOT)
+    if(DEFINED ENV{TEENSY_LIB_ROOT})
+        set(TEENSY_LIB_ROOT "$ENV{TEENSY_LIB_ROOT}")
+    else()
+        set(TEENSY_LIB_ROOT "$ENV{HOME}/Development")
+    endif()
 endif()
-get_filename_component(_evkb_root "${EVKB_ROOT}" ABSOLUTE)
-set(COREPATH "${_evkb_root}/cores/imxrt1176/" CACHE STRING "imxrt1176 core path" FORCE)
+get_filename_component(_lib_root "${TEENSY_LIB_ROOT}" ABSOLUTE)
+set(COREPATH "${_lib_root}/teensy-cores/imxrt1176/" CACHE STRING "imxrt1176 core path" FORCE)
 
 set(CMAKE_EXE_LINKER_FLAGS "--specs=nano.specs" CACHE INTERNAL "") # for linking stdc++ (nano)
 set(COMPILERPATH "/Applications/ARM_10/bin/")
